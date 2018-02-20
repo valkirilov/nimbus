@@ -1,0 +1,9 @@
+public class SimpleWeatherInfo : GLib.Object {
+
+    public string city;
+    public string country;
+
+    public SimpleWeatherInfo() {
+    }
+
+}
