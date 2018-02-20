@@ -41,7 +41,7 @@ public class Nimbus : Gtk.Application {
             app_window.move (window_x, window_y);
         }
 
-        app_window.show ();
+        //app_window.show ();
 
         var quit_action = new SimpleAction ("quit", null);
 
@@ -64,6 +64,9 @@ public class Nimbus : Gtk.Application {
             settings.set_int ("window-x", root_x);
             settings.set_int ("window-y", root_y);
         });
+
+
+        app_window.show_all ();
     }
 
     public static int main (string[] args) {

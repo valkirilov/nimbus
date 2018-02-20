@@ -27,13 +27,13 @@ public class MainWindow : Gtk.Dialog {
     """;
 
     private Gtk.Stack stack;
+    private AppIndicator.Indicator tray_indicator;
+
     private GWeather.Location location;
     private GWeather.Info weather_info;
     private SimpleWeatherInfo simple_weather_info;
 
     public MainWindow (Gtk.Application application) {
-        SimpleWeatherInfo simple_weather_info = new SimpleWeatherInfo();
-
         Object (application: application,
                 icon_name: "com.github.danrabbit.nimbus",
                 resizable: false,
@@ -102,6 +102,20 @@ public class MainWindow : Gtk.Dialog {
         var action_box = get_action_area () as Gtk.Box;
         action_box.visible = false;
 
+        tray_indicator = new AppIndicator.Indicator("Koki", "indicator-messages",
+            AppIndicator.IndicatorCategory.APPLICATION_STATUS);
+
+        tray_indicator.set_status(AppIndicator.IndicatorStatus.ATTENTION);
+        tray_indicator.set_attention_icon("content-loading-symbolic");
+
+        var tray_indicator_menu = new Gtk.Menu();
+
+        var tray_indicator_menu_item = new Gtk.MenuItem.with_label("Nimbus");
+        tray_indicator_menu_item.show();
+        tray_indicator_menu.append(tray_indicator_menu_item);
+
+        tray_indicator.set_menu(tray_indicator_menu);
+
         button_press_event.connect ((e) => {
             if (e.button == Gdk.BUTTON_PRIMARY) {
                 begin_move_drag ((int) e.button, (int) e.x_root, (int) e.y_root, e.time);
@@ -133,6 +147,10 @@ public class MainWindow : Gtk.Dialog {
             } catch (GLib.Error e) {
                 critical (e.message);
             }
+
+            tray_indicator.set_attention_icon(weather_icon.icon_name);
+            tray_indicator.set_label("  " + temp_label.label, temp_label.label);
+            tray_indicator_menu_item.set_label (weather_label.label + " - " + location_label.label);
         });
 
     }

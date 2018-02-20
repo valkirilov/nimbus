@@ -37,7 +37,8 @@ executable(
         dependency('gweather-3.0'),
         dependency('libgeoclue-2.0'),
         dependency('libsoup-2.4'),
-        dependency('json-glib-1.0')
+        dependency('json-glib-1.0'),
+        dependency('appindicator3-0.1')
     ],
     install : true
 )

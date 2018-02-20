@@ -27,6 +27,8 @@ public class MainWindow : Gtk.Dialog {
     """;
 
     private Gtk.Stack stack;
+    private AppIndicator.I tray_indicator;
+
     private GWeather.Location location;
     private GWeather.Info weather_info;
     private SimpleWeatherInfo simple_weather_info;
@@ -44,6 +46,8 @@ public class MainWindow : Gtk.Dialog {
         get_style_context ().add_class (Gtk.STYLE_CLASS_FLAT);
         set_keep_below (true);
         stick ();
+
+        simple_weather_info = new SimpleWeatherInfo();
 
         get_location.begin ();
 
@@ -98,6 +102,32 @@ public class MainWindow : Gtk.Dialog {
         var action_box = get_action_area () as Gtk.Box;
         action_box.visible = false;
 
+        tray_indicator = new AppIndicator.Indicator("Koki", "indicator-messages",
+            AppIndicator.IndicatorCategory.APPLICATION_STATUS);
+
+
+        tray_indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
+        tray_indicator.set_attention_icon("weather-clear-sky-night-symbolic");
+
+        var menu = new Gtk.Menu();
+
+        var item = new Gtk.MenuItem.with_label("Foo");
+        item.activate.connect(() => {
+            tray_indicator.set_status(AppIndicator.IndicatorStatus.ATTENTION);
+        });
+        item.show();
+        menu.append(item);
+
+        var bar = item = new Gtk.MenuItem.with_label("Bar");
+        item.show();
+        item.activate.connect(() => {
+            tray_indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
+        });
+        menu.append(item);
+
+        tray_indicator.set_menu(menu);
+        tray_indicator.set_secondary_activate_target(bar);
+
         button_press_event.connect ((e) => {
             if (e.button == Gdk.BUTTON_PRIMARY) {
                 begin_move_drag ((int) e.button, (int) e.x_root, (int) e.y_root, e.time);
@@ -110,51 +140,27 @@ public class MainWindow : Gtk.Dialog {
             weather_info.update ();
         });
 
-        weather_info.updated.connect (() => {
-            if (location == null) {
-                return;
-            }
+        simple_weather_info.updated.connect (() => {
+            stdout.printf ("Update weather inormation...\n");
 
-            location_label.label = dgettext("libgweather-locations", location.get_city_name ());
+            location_label.label = simple_weather_info.city + ", " + simple_weather_info.country;
 
-            weather_icon.icon_name = weather_info.get_symbolic_icon_name ();
-            weather_label.label = dgettext("libgweather", weather_info.get_sky ());
+            weather_icon.icon_name = simple_weather_info.get_symbolic_icon_name ();
+            weather_label.label = simple_weather_info.description;
 
-            double temp;
-            weather_info.get_value_temp (GWeather.TemperatureUnit.DEFAULT, out temp);
-            temp_label.label = _("%i°").printf ((int) temp);
+            temp_label.label = _("%i°").printf ((int) simple_weather_info.temperature);
 
-            string color_primary;
-
-            switch (weather_icon.icon_name) {
-                case "weather-clear-night-symbolic":
-                case "weather-few-clouds-night-symbolic":
-                    color_primary = "#183048";
-                    break;
-                case "weather-few-clouds-symbolic":
-                case "weather-overcast-symbolic":
-                case "weather-showers-symbolic":
-                case "weather-showers-scattered-symbolic":
-                    color_primary = "#68758e";
-                    break;
-                case "weather-snow-symbolic":
-                    color_primary = "#6fc3ff";
-                    break;
-                default:
-                    color_primary = "#42baea";
-                    break;
-            }
-
+            string color_primary = simple_weather_info.get_weather_color ();
             var provider = new Gtk.CssProvider ();
             try {
                 var colored_css = COLOR_PRIMARY.printf (color_primary);
                 provider.load_from_data (colored_css, colored_css.length);
-
-                Gtk.StyleContext.add_provider_for_screen (Gdk.Screen.get_default (), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+                 Gtk.StyleContext.add_provider_for_screen (Gdk.Screen.get_default (), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
             } catch (GLib.Error e) {
                 critical (e.message);
             }
         });
+
     }
 
     public async void get_location () {
@@ -177,43 +183,53 @@ public class MainWindow : Gtk.Dialog {
         location = GWeather.Location.get_world ();
         location = location.find_nearest_city (latitude, longitude);
         if (location != null) {
-            weather_info.location = location;
-            //weather_info.update ();
             stack.visible_child_name = "weather";
-            simple_weather_info = get_weather_info();
-            update_weather_info ();
+            get_weather_info(location.get_city_name (), location.get_country ());
         }
     }
 
-    public SimpleWeatherInfo get_weather_info () {
-        var uri = "http://api.openweathermap.org/data/2.5/weather?q=London,uk&appid=c15c9ccbeb1c536e7cdcad2ef4c82c42";
+    public void get_weather_info (string city, string country) {
+        string APP_ID = "c15c9ccbeb1c536e7cdcad2ef4c82c42";
+        string API_URL = "http://api.openweathermap.org/data/2.5/weather";
+
+        var uri = "%s?q=%s,%s&appid=%s&units=metric".printf (API_URL, city, country.down (), APP_ID);
+        stdout.printf ("API URI: %s\n", uri);
 
         var session = new Soup.Session ();
         var message = new Soup.Message ("GET", uri);
         session.send_message (message);
-
-        SimpleWeatherInfo simple_weather_info = new SimpleWeatherInfo();
 
         try {
             var parser = new Json.Parser ();
             parser.load_from_data ((string) message.response_body.flatten ().data, -1);
 
             var response_root_object = parser.get_root ().get_object ();
-            var weather = response_root_object.get_object_member ("weather");
+            var weather = response_root_object.get_array_member ("weather");
+            var sys = response_root_object.get_object_member ("sys");
+            var main = response_root_object.get_object_member ("main");
 
-//            string response_root_object = response_root_object.get_string_member ("name");
-  //          string weather_id2 = weather.get_string_member ("main");
-
-
-
+            string weather_descriptnon = "";
+            string weather_icon = "";
+            foreach (var weather_details_item in weather.get_elements ()) {
+                var weather_details = weather_details_item.get_object ();
+                weather_descriptnon = weather_details.get_string_member ("main");
+                weather_icon = weather_details.get_string_member ("icon");
+            }
 
             simple_weather_info.city = response_root_object.get_string_member ("name");
+            simple_weather_info.country = sys.get_string_member ("country");
+            simple_weather_info.temperature = main.get_double_member ("temp");
+            simple_weather_info.description = weather_descriptnon;
+            simple_weather_info.icon = weather_icon;
 
+            stdout.printf ("City: %s\n", simple_weather_info.city);
+            stdout.printf ("Country: %s\n", simple_weather_info.country);
+            stdout.printf ("Description: %s\n", simple_weather_info.description);
+            stdout.printf ("Temperature: %f\n", simple_weather_info.temperature);
 
+            simple_weather_info.update ();
         } catch (Error e) {
             stderr.printf ("I guess something is not working...\n");
         }
-
-        return simple_weather_info;
     }
 }
