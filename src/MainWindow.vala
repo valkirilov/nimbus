@@ -28,9 +28,6 @@ public class MainWindow : Gtk.Dialog {
 
     private Gtk.Stack stack;
     private AppIndicator.Indicator tray_indicator;
-
-    private GWeather.Location location;
-    private GWeather.Info weather_info;
     private SimpleWeatherInfo simple_weather_info;
 
     public MainWindow (Gtk.Application application) {
@@ -51,22 +48,20 @@ public class MainWindow : Gtk.Dialog {
 
         get_location.begin ();
 
-        weather_info = new GWeather.Info (location, GWeather.ForecastType.LIST);
+        var weather_icon = new Gtk.Image.from_icon_name ("content-loading-symbolic", Gtk.IconSize.DIALOG);
 
-        var weather_icon = new Gtk.Image.from_icon_name (weather_info.get_symbolic_icon_name (), Gtk.IconSize.DIALOG);
-
-        var weather_label = new Gtk.Label (weather_info.get_sky ());
+        var weather_label = new Gtk.Label (simple_weather_info.city);
         weather_label.halign = Gtk.Align.END;
         weather_label.hexpand = true;
         weather_label.margin_top = 6;
         weather_label.get_style_context ().add_class ("weather");
 
-        var temp_label = new Gtk.Label (weather_info.get_temp ());
+        var temp_label = new Gtk.Label (simple_weather_info.get_temperature ());
         temp_label.halign = Gtk.Align.START;
         temp_label.margin_bottom = 3;
         temp_label.get_style_context ().add_class ("temperature");
 
-        var location_label = new Gtk.Label ("");
+        var location_label = new Gtk.Label (simple_weather_info.country);
         location_label.halign = Gtk.Align.END;
         location_label.margin_bottom = 12;
 
@@ -102,7 +97,7 @@ public class MainWindow : Gtk.Dialog {
         var action_box = get_action_area () as Gtk.Box;
         action_box.visible = false;
 
-        tray_indicator = new AppIndicator.Indicator("Koki", "indicator-messages",
+        tray_indicator = new AppIndicator.Indicator("Nimbus", "indicator-messages",
             AppIndicator.IndicatorCategory.APPLICATION_STATUS);
 
         tray_indicator.set_status(AppIndicator.IndicatorStatus.ATTENTION);
@@ -125,18 +120,17 @@ public class MainWindow : Gtk.Dialog {
         });
 
         focus_in_event.connect (() => {
-            weather_info.update ();
+            simple_weather_info.update_weather_info ();
         });
 
-        simple_weather_info.updated.connect (() => {
-            stdout.printf ("Update weather inormation...\n");
+        simple_weather_info.weather_info_updated.connect (() => {
 
             location_label.label = simple_weather_info.city + ", " + simple_weather_info.country;
 
             weather_icon.icon_name = simple_weather_info.get_symbolic_icon_name ();
             weather_label.label = simple_weather_info.description;
 
-            temp_label.label = _("%i°").printf ((int) simple_weather_info.temperature);
+            temp_label.label = simple_weather_info.get_temperature ();
 
             string color_primary = simple_weather_info.get_weather_color ();
             var provider = new Gtk.CssProvider ();
@@ -153,6 +147,10 @@ public class MainWindow : Gtk.Dialog {
             tray_indicator_menu_item.set_label (weather_label.label + " - " + location_label.label);
         });
 
+        Timeout.add (15 * 60 * 1000, () => {
+            simple_weather_info.update_weather_info ();
+        });
+
     }
 
     public async void get_location () {
@@ -161,6 +159,7 @@ public class MainWindow : Gtk.Dialog {
 
             simple.notify["location"].connect (() => {
                 on_location_updated (simple.location.latitude, simple.location.longitude);
+
             });
 
             on_location_updated (simple.location.latitude, simple.location.longitude);
@@ -172,56 +171,9 @@ public class MainWindow : Gtk.Dialog {
     }
 
     public void on_location_updated (double latitude, double longitude) {
-        location = GWeather.Location.get_world ();
-        location = location.find_nearest_city (latitude, longitude);
-        if (location != null) {
-            stack.visible_child_name = "weather";
-            get_weather_info(location.get_city_name (), location.get_country ());
-        }
+        stack.visible_child_name = "weather";
+        simple_weather_info.set_location (latitude, longitude);
+        simple_weather_info.update_weather_info ();
     }
 
-    public void get_weather_info (string city, string country) {
-        string APP_ID = "c15c9ccbeb1c536e7cdcad2ef4c82c42";
-        string API_URL = "http://api.openweathermap.org/data/2.5/weather";
-
-        var uri = "%s?q=%s,%s&appid=%s&units=metric".printf (API_URL, city, country.down (), APP_ID);
-        stdout.printf ("API URI: %s\n", uri);
-
-        var session = new Soup.Session ();
-        var message = new Soup.Message ("GET", uri);
-        session.send_message (message);
-
-        try {
-            var parser = new Json.Parser ();
-            parser.load_from_data ((string) message.response_body.flatten ().data, -1);
-
-            var response_root_object = parser.get_root ().get_object ();
-            var weather = response_root_object.get_array_member ("weather");
-            var sys = response_root_object.get_object_member ("sys");
-            var main = response_root_object.get_object_member ("main");
-
-            string weather_descriptnon = "";
-            string weather_icon = "";
-            foreach (var weather_details_item in weather.get_elements ()) {
-                var weather_details = weather_details_item.get_object ();
-                weather_descriptnon = weather_details.get_string_member ("main");
-                weather_icon = weather_details.get_string_member ("icon");
-            }
-
-            simple_weather_info.city = response_root_object.get_string_member ("name");
-            simple_weather_info.country = sys.get_string_member ("country");
-            simple_weather_info.temperature = main.get_double_member ("temp");
-            simple_weather_info.description = weather_descriptnon;
-            simple_weather_info.icon = weather_icon;
-
-            stdout.printf ("City: %s\n", simple_weather_info.city);
-            stdout.printf ("Country: %s\n", simple_weather_info.country);
-            stdout.printf ("Description: %s\n", simple_weather_info.description);
-            stdout.printf ("Temperature: %f\n", simple_weather_info.temperature);
-
-            simple_weather_info.update ();
-        } catch (Error e) {
-            stderr.printf ("I guess something is not working...\n");
-        }
-    }
 }

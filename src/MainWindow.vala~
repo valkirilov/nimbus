@@ -27,7 +27,7 @@ public class MainWindow : Gtk.Dialog {
     """;
 
     private Gtk.Stack stack;
-    private AppIndicator.I tray_indicator;
+    private AppIndicator.Indicator tray_indicator;
 
     private GWeather.Location location;
     private GWeather.Info weather_info;
@@ -105,28 +105,16 @@ public class MainWindow : Gtk.Dialog {
         tray_indicator = new AppIndicator.Indicator("Koki", "indicator-messages",
             AppIndicator.IndicatorCategory.APPLICATION_STATUS);
 
+        tray_indicator.set_status(AppIndicator.IndicatorStatus.ATTENTION);
+        tray_indicator.set_attention_icon("content-loading-symbolic");
 
-        tray_indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
-        tray_indicator.set_attention_icon("weather-clear-sky-night-symbolic");
+        var tray_indicator_menu = new Gtk.Menu();
 
-        var menu = new Gtk.Menu();
+        var tray_indicator_menu_item = new Gtk.MenuItem.with_label("Nimbus");
+        tray_indicator_menu_item.show();
+        tray_indicator_menu.append(tray_indicator_menu_item);
 
-        var item = new Gtk.MenuItem.with_label("Foo");
-        item.activate.connect(() => {
-            tray_indicator.set_status(AppIndicator.IndicatorStatus.ATTENTION);
-        });
-        item.show();
-        menu.append(item);
-
-        var bar = item = new Gtk.MenuItem.with_label("Bar");
-        item.show();
-        item.activate.connect(() => {
-            tray_indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE);
-        });
-        menu.append(item);
-
-        tray_indicator.set_menu(menu);
-        tray_indicator.set_secondary_activate_target(bar);
+        tray_indicator.set_menu(tray_indicator_menu);
 
         button_press_event.connect ((e) => {
             if (e.button == Gdk.BUTTON_PRIMARY) {
@@ -159,6 +147,10 @@ public class MainWindow : Gtk.Dialog {
             } catch (GLib.Error e) {
                 critical (e.message);
             }
+
+            tray_indicator.set_attention_icon(weather_icon.icon_name);
+            tray_indicator.set_label("  " + temp_label.label, temp_label.label);
+            tray_indicator_menu_item.set_label (weather_label.label + " - " + location_label.label);
         });
 
     }

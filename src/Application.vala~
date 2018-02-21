@@ -65,6 +65,7 @@ public class Nimbus : Gtk.Application {
             settings.set_int ("window-y", root_y);
         });
 
+
         app_window.show_all ();
     }
 
