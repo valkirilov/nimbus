@@ -13,6 +13,35 @@
       <summary>Most recent y position of Nimbus</summary>
       <description>Most recent y position of Nimbus</description>
     </key>
+    <key name="settings-units" type="i">
+      <default>0</default>
+      <summary>Units type</summary>
+      <description>
+        Type of units which should be used (Celsius/Fahrenheit)
+       </description>
+    </key>
+    <key name="settings-modes" type="i">
+      <default>0</default>
+      <summary>Mode of the program</summary>
+      <description>
+        Mode of the program (Default/Only widget/Only indicator)
+      </description>
+    </key>
+    <key name="settings-location-manual" type="b">
+      <default>false</default>
+      <summary>Location type</summary>
+      <description>
+        Location type used by the program (Automatic/Manual)
+      </description>
+    </key>
+    <key name="settings-location-manual-value" type="s">
+      <default>"London, UK"</default>
+      <summary>Manual location stored value</summary>
+      <description>
+        The user can specify exact location manually in the format "City, Country code"
+        Example: London, UK
+      </description>
+    </key>
   </schema>
 </schemalist>
 

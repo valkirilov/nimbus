@@ -19,6 +19,14 @@
 */
 
 public class Nimbus : Gtk.Application {
+
+    public const int UNITS_CELSIUS = 0;
+    public const int UNITS_FAHRENHEIT = 1;
+
+    public const int MODES_DEFAULT = 0;
+    public const int MODES_WIDGET_ONLY = 1;
+    public const int MODES_INDICATOR_ONLY = 2;
+
     public Nimbus () {
         Object (application_id: "com.github.danrabbit.nimbus",
         flags: ApplicationFlags.FLAGS_NONE);
@@ -41,7 +49,13 @@ public class Nimbus : Gtk.Application {
             app_window.move (window_x, window_y);
         }
 
-        //app_window.show ();
+        if (settings.get_int ("settings-modes") == Nimbus.MODES_DEFAULT
+            || settings.get_int ("settings-modes") == Nimbus.MODES_WIDGET_ONLY) {
+            app_window.show ();
+        }
+        else if (settings.get_int ("settings-modes") == Nimbus.MODES_INDICATOR_ONLY) {
+            app_window.hide ();
+        }
 
         var quit_action = new SimpleAction ("quit", null);
 
@@ -65,7 +79,6 @@ public class Nimbus : Gtk.Application {
             settings.set_int ("window-y", root_y);
         });
 
-        app_window.show_all ();
     }
 
     public static int main (string[] args) {

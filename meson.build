@@ -27,6 +27,7 @@ executable(
     'com.github.danrabbit.nimbus',
     'src/Application.vala',
     'src/MainWindow.vala',
+    'src/PreferencesDialog.vala',
     'src/SimpleWeatherInfo.vala',
     asresources,
     c_args: c_args,
@@ -38,7 +39,8 @@ executable(
         dependency('libgeoclue-2.0'),
         dependency('libsoup-2.4'),
         dependency('json-glib-1.0'),
-        dependency('appindicator3-0.1')
+        dependency('appindicator3-0.1'),
+        dependency('unity')
     ],
     install : true
 )
