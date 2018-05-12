@@ -48,7 +48,6 @@ public class SimpleWeatherInfo : GLib.Object {
         table_icon_names.insert("50n", "weather-fog-symbolic");
 
         table_weather_colors = new GLib.HashTable<string, string> (str_hash, str_equal);
-        table_weather_colors.insert("weather-few-clouds-symbolic", "#3b778e");
         table_weather_colors.insert("weather-overcast-symbolic", "#68758e");
         table_weather_colors.insert("weather-showers-symbolic", "#68758e");
         table_weather_colors.insert("weather-showers-scattered-symbolic", "#68758e");
@@ -62,6 +61,7 @@ public class SimpleWeatherInfo : GLib.Object {
         table_icon_colors.insert("weather-showers-symbolic", "weather-rain");
         table_icon_colors.insert("weather-showers-scattered-symbolic", "weather-rain");
         table_icon_colors.insert("weather-showers-scattered-night-symbolic", "weather-rain");
+        table_icon_colors.insert("weather-few-clouds-symbolic", "weather-clouds");
         table_icon_colors.insert("weather-overcast-symbolic", "weather-clouds");
         table_icon_colors.insert("weather-fog-symbolic", "weather-fog");
     }

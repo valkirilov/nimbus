@@ -148,9 +148,14 @@ public class MainWindow : Gtk.Dialog {
                 critical (e.message);
             }
 
-            tray_indicator.set_attention_icon(weather_icon.icon_name);
-            tray_indicator.set_label("  " + temp_label.label, temp_label.label);
-            //tray_indicator_menu_item.set_label (weather_label.label + " - " + location_label.label);
+            if (settings.get_int ("settings-modes") == Nimbus.MODES_DEFAULT
+                || settings.get_int ("settings-modes") == Nimbus.MODES_WIDGET_ONLY) {
+
+                tray_indicator.set_status(AppIndicator.IndicatorStatus.PASSIVE);
+                tray_indicator.set_attention_icon(weather_icon.icon_name);
+                tray_indicator.set_label("  " + temp_label.label, temp_label.label);
+                tray_indicator.set_status (AppIndicator.IndicatorStatus.ATTENTION);
+            }
 
             Timeout.add (1000 * 60 * 15, () => {
                 simple_weather_info.update_weather_info ();
